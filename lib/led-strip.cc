@@ -153,7 +153,6 @@ private:
     const int gpio_;
 };
 
-
 class APA102LedStrip : public LEDStrip {
 public:
     APA102LedStrip(MultiSPI *spi, int gpio, int count)
@@ -213,6 +212,58 @@ private:
     MultiSPI *const spi_;
     const int gpio_;
 };
+
+class P9813LedStrip : public LEDStrip {
+public:
+    P9813LedStrip(MultiSPI *spi, int gpio, int count)
+        : LEDStrip(count), spi_(spi), gpio_(gpio) {
+        const size_t startframe_size = 4;
+        const size_t endframe_size = (count+15) / 16;
+        const size_t bytes_needed = startframe_size + 4*count + endframe_size;
+
+        spi_->RegisterDataGPIO(gpio, bytes_needed);
+
+        // Four zero bytes as start-bytes
+        spi_->SetBufferedByte(gpio_, 0, 0x00);
+        spi_->SetBufferedByte(gpio_, 1, 0x00);
+        spi_->SetBufferedByte(gpio_, 2, 0x00);
+        spi_->SetBufferedByte(gpio_, 3, 0x00);
+
+        // Make sure the start bits are properly set.
+        for (int i = 0; i < count; ++i) {
+            SetPixel(i, 0x000000);
+        }
+
+        // APA102 needs a couple of more bits clocked at the end;
+        // not sure if P9813 does, too, but it shouldn't hurt. If the
+        // chain happens to be longer than specified, this frame will
+        // fail the parity check anyway.
+        for (size_t tail = 4 + 4*count; tail < bytes_needed; ++tail) {
+            spi_->SetBufferedByte(gpio_, tail, 0xff);
+        }
+    }
+
+    virtual void SetLinearValues(int pos, uint16_t r, uint16_t g, uint16_t b) {
+        const int base = 4 + 4 * pos;
+        uint8_t prefix = 0xc0;
+
+        b >>= 8;
+        prefix |= (~b & 0xc0) >> 2;
+        g >>= 8;
+        prefix |= (~g & 0xc0) >> 4;
+        r >>= 8;
+        prefix |= (~r & 0xc0) >> 6;
+
+        spi_->SetBufferedByte(gpio_, base + 0, prefix);
+        spi_->SetBufferedByte(gpio_, base + 1, b);
+        spi_->SetBufferedByte(gpio_, base + 2, g);
+        spi_->SetBufferedByte(gpio_, base + 3, r);
+    }
+
+private:
+    MultiSPI *const spi_;
+    const int gpio_;
+};
 }  // anonymous namespace
 
 // Public interface
@@ -227,5 +278,8 @@ LEDStrip *CreateLPD8806Strip(MultiSPI *spi, int connector, int count) {
 }
 LEDStrip *CreateAPA102Strip(MultiSPI *spi, int connector, int count) {
     return new APA102LedStrip(spi, connector, count);
+}
+LEDStrip *CreateP9813Strip(MultiSPI *spi, int connector, int count) {
+    return new P9813LedStrip(spi, connector, count);
 }
 }  // spixels namespace
