@@ -224,6 +224,10 @@ public:
         spi_->SetBufferedByte(gpio_, 1, 0x00);
         spi_->SetBufferedByte(gpio_, 2, 0x00);
         spi_->SetBufferedByte(gpio_, 3, 0x00);
+        
+	for (int pos = 0; pos < count; ++pos) {
+            SetPixel(pos, 0x000000);     // Initialize all top-bits.
+        }
     }
 
     virtual void SetLinearValues(int pos, uint16_t r, uint16_t g, uint16_t b) {
