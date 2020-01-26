@@ -244,20 +244,43 @@ public:
     }
 
     virtual void SetLinearValues(int pos, uint16_t r, uint16_t g, uint16_t b) {
-        const int base = 4 + 4 * pos;
+        const int base = 4 * pos;
         uint8_t prefix = 0xc0;
+        uint8_t r1 = (uint8_t)r;
+        uint8_t g1 = (uint8_t)g;
+        uint8_t b1 = (uint8_t)b;
 
-        b >>= 8;
-        prefix |= (~b & 0xc0) >> 2;
-        g >>= 8;
-        prefix |= (~g & 0xc0) >> 4;
-        r >>= 8;
-        prefix |= (~r & 0xc0) >> 6;
+        if ((b1 & 0x80) == 0) {     
+            //prefix |= B00100000
+            prefix |= 0x20;
+        }
+        if ((b1 & 0x40) == 0) {     
+            //prefix |= B00010000
+            prefix |= 0x10;
+        }
+        if ((g1 & 0x80) == 0) {    
+            //prefix |= B00001000
+            prefix |= 0x08;
+        }
+        if ((g1 & 0x40) == 0) {     
+            //prefix |= B00000100
+            prefix |= 0x04;
+        }
+        if ((r1 & 0x80) == 0) {      
+            //prefix |= B00000010
+            prefix |= 0x02;
+        }
+        if ((r1 & 0x40) == 0) {      
+            //prefix |= B00000001
+            prefix |= 0x01;  
+        }
 
+        // std::bitset<8> a1(prefix);
+        // std::cout << a1;
         spi_->SetBufferedByte(gpio_, base + 0, prefix);
-        spi_->SetBufferedByte(gpio_, base + 1, b);
-        spi_->SetBufferedByte(gpio_, base + 2, g);
-        spi_->SetBufferedByte(gpio_, base + 3, r);
+        spi_->SetBufferedByte(gpio_, base + 1, b1);
+        spi_->SetBufferedByte(gpio_, base + 2, g1);
+        spi_->SetBufferedByte(gpio_, base + 3, r1);
     }
 
 private:
