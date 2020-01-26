@@ -231,7 +231,7 @@ public:
     }
 
     virtual void SetLinearValues(int pos, uint16_t r, uint16_t g, uint16_t b) {
-        const int base = 4 * pos;
+        const int base = 4 + 4 * pos;
         uint8_t prefix = 0xc0;
         uint8_t r1 = (uint8_t)r;
         uint8_t g1 = (uint8_t)g;
